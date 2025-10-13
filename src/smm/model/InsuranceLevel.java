@@ -1,5 +1,3 @@
 package smm.model;
 
-public class InsuranceLevel {
-    
-}
+public enum InsuranceLevel { MINIMAL, NORMAL, PREMIUM }
