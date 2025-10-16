@@ -1,3 +1,4 @@
+// imports identiques
 package smm.view;
 
 import smm.controller.AppController;
@@ -31,6 +32,7 @@ public class AppFrame extends JFrame {
         JPanel left = new JPanel(new BorderLayout());
         left.setBorder(new EmptyBorder(12, 12, 12, 6));
         nav = new JList<>(navModel);
+        nav.setFixedCellWidth(220);                       // largeur stable
         nav.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         left.add(new JLabel("Navigation"), BorderLayout.NORTH);
         left.add(new JScrollPane(nav), BorderLayout.CENTER);
@@ -58,7 +60,7 @@ public class AppFrame extends JFrame {
         addPage("Doctor / Admin View", new DoctorAdminPage(controller));
 
         nav.addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) go(nav.getSelectedValue());
+            if (!e.getValueIsAdjusting()) navigateTo(nav.getSelectedValue());
         });
 
         nav.setSelectedIndex(0);
@@ -70,7 +72,7 @@ public class AppFrame extends JFrame {
         content.add(panel, key);
     }
 
-    private void go(String key) {
+    private void showCard(String key) {
         if (key == null) return;
         refresh(key);
         cards.show(content, key);
@@ -83,5 +85,12 @@ public class AppFrame extends JFrame {
 
     public void refreshAll() {
         for (JPanel p : pages.values()) if (p instanceof Refreshable r) r.refresh();
+    }
+
+    // NEW: navigation publique pour les panels
+    public void navigateTo(String key) {
+        refreshAll();
+        showCard(key);
+        nav.setSelectedValue(key, true);
     }
 }
