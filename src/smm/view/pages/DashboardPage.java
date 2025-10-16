@@ -59,7 +59,7 @@ public class DashboardPage extends NavAwarePanel {
 
             logoCard.add(logoPanel, BorderLayout.CENTER);
         } catch (Exception ex) {
-            JLabel error = new JLabel("⚠️ Logo not found at /src/smm/view/pages/logoapp.png", SwingConstants.CENTER);
+            JLabel error = new JLabel("Logo not found at /src/smm/view/pages/logoapp.png", SwingConstants.CENTER);
             logoCard.add(error, BorderLayout.CENTER);
         }
         center.add(logoCard, BorderLayout.CENTER);
