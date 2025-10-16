@@ -1,17 +1,17 @@
 ## Getting Started
 
-Welcome to the VS Code Java world. Here is a guideline to help you get started to write Java code in Visual Studio Code.
+Welcome to the Smart Medical Appointment Manager. This github contains the codebase for the app with follows the Model View Controller design, and contains well maintained code.
 
 ## Folder Structure
 
-The workspace contains two folders by default, where:
+The structure of the app is as follows:
 
 - `src`: the folder to maintain sources
-- `lib`: the folder to maintain dependencies
+    -`controller`
+    -`model`
+    -`view`
 
 Meanwhile, the compiled output files will be generated in the `bin` folder by default.
-
-> If you want to customize the folder structure, open `.vscode/settings.json` and update the related settings there.
 
 ## Dependency Management
 
