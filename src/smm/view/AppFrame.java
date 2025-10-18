@@ -53,7 +53,7 @@ public class AppFrame extends JFrame {
         addPage("Insurance • Overview", new InsurancePage(controller, this::refreshAll));
         addPage("Payment • Billing & Payments", new PaymentPages.BillingPage(controller, this::refreshAll));
         addPage("Payment • Pricing Details", new PaymentPages.PricingPage(controller));
-        addPage("Payment • Credit Balance", new PaymentPages.CreditPage(controller));
+        // addPage("Payment • Credit Balance", new PaymentPages.CreditPage(controller));
         addPage("Reminders • Dashboard", new RemindersPages.DashboardPage(controller, this::refreshAll));
         addPage("Reminders • Add / Edit", new RemindersPages.EditPage(controller, this::refreshAll));
         addPage("User Profile", new UserProfilePage(controller, this::refreshAll));

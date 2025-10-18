@@ -175,6 +175,16 @@ public class AppController implements ControllerInterface {
         return model.appointments.stream().filter(a -> a.id.equals(selectedAppointmentId)).findFirst().orElse(null);
     }
 
+    public void updateUserProfile(String name, boolean email, boolean sms, boolean inApp, boolean twoFA) {
+        if (name == null || name.trim().isEmpty()) {
+            throw new IllegalArgumentException("Name cannot be empty");
+        }
+        model.profile.name = name.trim();
+        setNotificationPrefs(email, sms, inApp);
+        setTwoFA(twoFA);
+    }
+
+
     /* -----------------------------------------------------------
        Helpers
        ----------------------------------------------------------- */
@@ -184,4 +194,5 @@ public class AppController implements ControllerInterface {
     private static boolean isInsurance(String f) {
         return f.equals("INSURANCE_MINIMAL") || f.equals("INSURANCE_NORMAL") || f.equals("INSURANCE_PREMIUM");
     }
+
 }

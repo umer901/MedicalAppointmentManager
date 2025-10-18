@@ -341,10 +341,11 @@ public static class ListPage extends NavAwarePanel {
 
  /* -------- Create Booking (updated) -------- */
 public static class CreatePage extends NavAwarePanel {
-    private final AppController c; private final Runnable after;
+    private final AppController c;
+    private final Runnable after;
 
-    private final JComboBox<String> cbType = new JComboBox<>(new String[]{"Consultation","Surgery","Follow-up"});
-    private final JComboBox<String> cbService = new JComboBox<>(new String[]{"Dermatology","Cardiology","Radiology","General"});
+    private final JComboBox cbType = new JComboBox<>(new String[]{"Consultation", "Surgery", "Follow-up"});
+    private final JComboBox cbService = new JComboBox<>(new String[]{"Dermatology", "Cardiology", "Radiology", "General"});
     private final JTextField tfCenter = new JTextField("St-Luc", 12);
 
     // Doctor list (scrollable)
@@ -354,28 +355,42 @@ public static class CreatePage extends NavAwarePanel {
     private final JSpinner spDate = new JSpinner(new SpinnerDateModel(new Date(), null, null, Calendar.DAY_OF_MONTH));
     private final JSpinner spTime = new JSpinner(new SpinnerDateModel(new Date(), null, null, Calendar.MINUTE));
 
-    // Base price (input) + computed price label (after insurance)
-    private final JSpinner spBasePrice = new JSpinner(new SpinnerNumberModel(100.0, 0, 10000, 10));
+    // Remove user input for price
     private final JLabel lbComputed = new JLabel("You pay: —");
-
     private final JCheckBox chkCalendar = new JCheckBox("Add to Calendar", true);
-    private final JCheckBox chkPayNow   = new JCheckBox("Pay Now");
+    private final JCheckBox chkPayNow = new JCheckBox("Pay Now");
 
-    // Demo doctor directory per service
+    // Map doctor to base price
+    private static final Map<String, Double> DOCTOR_PRICES;
+    static {
+        DOCTOR_PRICES = new HashMap<>();
+        DOCTOR_PRICES.put("Dr. Martin", 120.0);
+        DOCTOR_PRICES.put("Dr. Lambert", 100.0);
+        DOCTOR_PRICES.put("Dr. Rossi", 130.0);
+        DOCTOR_PRICES.put("Dr. Duval", 150.0);
+        DOCTOR_PRICES.put("Dr. Bernard", 110.0);
+        DOCTOR_PRICES.put("Dr. Kassis", 115.0);
+        DOCTOR_PRICES.put("Dr. Selim", 140.0);
+        DOCTOR_PRICES.put("Dr. Pereira", 125.0);
+        DOCTOR_PRICES.put("Dr. Smith", 90.0);
+        DOCTOR_PRICES.put("Dr. Patel", 100.0);
+        DOCTOR_PRICES.put("Dr. Garcia", 95.0);
+    }
+
     private static final Map<String, String[]> DOCTORS = Map.of(
-            "Dermatology", new String[]{"Dr. Martin","Dr. Lambert","Dr. Rossi"},
-            "Cardiology",  new String[]{"Dr. Duval","Dr. Bernard","Dr. Kassis"},
-            "Radiology",   new String[]{"Dr. Selim","Dr. Pereira"},
-            "General",     new String[]{"Dr. Smith","Dr. Patel","Dr. Garcia"}
+        "Dermatology", new String[]{"Dr. Martin","Dr. Lambert","Dr. Rossi"},
+        "Cardiology", new String[]{"Dr. Duval","Dr. Bernard","Dr. Kassis"},
+        "Radiology", new String[]{"Dr. Selim","Dr. Pereira"},
+        "General", new String[]{"Dr. Smith","Dr. Patel","Dr. Garcia"}
     );
 
     public CreatePage(AppController c, Runnable afterSave) {
         this.c = c; this.after = afterSave;
 
         setLayout(new BorderLayout(16,0));
-
         ((JSpinner.DateEditor)spDate.getEditor()).getFormat().applyPattern("yyyy-MM-dd");
         ((JSpinner.DateEditor)spTime.getEditor()).getFormat().applyPattern("HH:mm");
+
         listDoctors.setVisibleRowCount(6);
         listDoctors.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
@@ -384,33 +399,25 @@ public static class CreatePage extends NavAwarePanel {
         form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
         form.add(UI.h1("Create Booking"));
         form.add(Box.createVerticalStrut(6));
-
         form.add(UI.row(new JLabel("Type:"), cbType, new JLabel("Service:"), cbService));
         form.add(Box.createVerticalStrut(4));
-
         JScrollPane spDoctors = new JScrollPane(listDoctors);
         spDoctors.setPreferredSize(new Dimension(220, 120));
         form.add(UI.row(new JLabel("Doctor:"), spDoctors, new JLabel("Center:"), tfCenter));
         form.add(Box.createVerticalStrut(4));
-
         form.add(UI.row(new JLabel("Date:"), spDate, new JLabel("Time:"), spTime));
         form.add(Box.createVerticalStrut(4));
-
-        form.add(UI.row(new JLabel("Base Price (€):"), spBasePrice));
-        form.add(Box.createVerticalStrut(2));
+        // User does not input price anymore
         lbComputed.setFont(lbComputed.getFont().deriveFont(Font.BOLD));
         form.add(UI.row(lbComputed));
         form.add(Box.createVerticalStrut(6));
-
         form.add(UI.row(chkCalendar, chkPayNow));
         form.add(Box.createVerticalStrut(8));
-
         JButton create = new JButton("Create Booking");
         create.addActionListener(e -> onCreate());
         JPanel centerCreate = new JPanel(new FlowLayout(FlowLayout.CENTER));
         centerCreate.add(create);
         form.add(centerCreate);
-
         add(form, BorderLayout.CENTER);
 
         // RIGHT: logo card
@@ -429,7 +436,7 @@ public static class CreatePage extends NavAwarePanel {
 
         // listeners
         cbService.addActionListener(e -> refreshDoctors());
-        spBasePrice.addChangeListener(e -> updateComputedPrice());
+        listDoctors.addListSelectionListener(e -> updateComputedPrice());
 
         // initial
         refreshDoctors();
@@ -444,10 +451,11 @@ public static class CreatePage extends NavAwarePanel {
     }
 
     private void updateComputedPrice() {
-        double base = ((Number) spBasePrice.getValue()).doubleValue();
-        double due  = c.getModel().priceAfterInsurance(base);
+        String doctor = listDoctors.getSelectedValue();
+        double base = DOCTOR_PRICES.getOrDefault(doctor, 100.0);
+        double due = c.getModel().priceAfterInsurance(base);
         lbComputed.setText("You pay: " + String.format(java.util.Locale.ROOT, "%.2f€", due)
-                + "  (Policy: " + c.getModel().currentPolicy() + ")");
+            + " (Policy: " + c.getModel().currentPolicy() + ")");
     }
 
     private void onCreate() {
@@ -458,27 +466,28 @@ public static class CreatePage extends NavAwarePanel {
         }
         var date = LocalDate.parse(new java.text.SimpleDateFormat("yyyy-MM-dd").format((Date) spDate.getValue()));
         var time = LocalTime.parse(new java.text.SimpleDateFormat("HH:mm").format((Date) spTime.getValue()));
-
-        var a = c.createBooking(date, time,
-                (String) cbType.getSelectedItem(),
-                (String) cbService.getSelectedItem(),
-                doctor, tfCenter.getText(),
-                /*room*/ null, /*equipment*/ null,
-                ((Number) spBasePrice.getValue()).doubleValue(),
-                chkCalendar.isSelected(), chkPayNow.isSelected());
-
+        double base = DOCTOR_PRICES.getOrDefault(doctor, 100.0);
+        var a = c.createBooking(
+            date, time,
+            (String) cbType.getSelectedItem(),
+            (String) cbService.getSelectedItem(),
+            doctor, tfCenter.getText(),
+            null, null,
+            base,
+            chkCalendar.isSelected(), chkPayNow.isSelected()
+        );
         JOptionPane.showMessageDialog(this,
-                "Created:\n" + a.summary() +
-                "\nYou pay now: " + String.format(java.util.Locale.ROOT, "%.2f€", c.getModel().priceAfterInsurance(a.price)));
+            "Created:\n" + a.summary() +
+            "\nYou pay now: " + String.format(java.util.Locale.ROOT, "%.2f€", c.getModel().priceAfterInsurance(a.price)));
         after.run();
         go("Appointments • List");
     }
 
     @Override public void refresh() {
-        // if insurance changed elsewhere, recompute
-        updateComputedPrice();
+        updateComputedPrice(); // recompute in case insurance changed
     }
 }
+
 
     /* -------- Details -------- */
     public static class DetailsPage extends NavAwarePanel {
