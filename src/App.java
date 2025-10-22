@@ -1,8 +1,9 @@
-
 import smm.controller.AppController;
 import smm.model.AppModel;
+import smm.model.TimeEventSystem;
 import smm.view.AppFrame;
 import smm.view.NavigationEvent;
+import smm.view.pages.TimePage;
 
 import java.awt.*;
 
@@ -11,14 +12,22 @@ public class App {
         System.setProperty("awt.useSystemAAFontSettings", "on");
         System.setProperty("swing.aatext", "true");
 
+        // Model + Controller
         var model = new AppModel();
         var controller = new AppController(model);
 
-        // Let the controller bring up the UI (implements ControllerInterface)
+        // Time Event System (Observer pattern)
+        var tes = new TimeEventSystem();
+        tes.addObserver(model); // model adapts when time advances
+
+        // Show UI
         controller.enableUIView();
         AppFrame frame = controller.getView();
 
-        // Event bus for navigation
+        // Register TES page ONCE here (not inside the event listener)
+        frame.addExternalPage("Time Event System", new TimePage(controller, tes));
+
+        // Navigation event bus
         Toolkit.getDefaultToolkit().addAWTEventListener(event -> {
             if (event instanceof NavigationEvent ne) {
                 String target = ne.target;
@@ -28,9 +37,7 @@ public class App {
             }
         }, NavigationEvent.NAV_ID);
 
+        // Initial refresh
         frame.refreshAll();
-
-        // Example: controller.activate(...) works now
-        // controller.activate(null, new String[]{"INSURANCE_PREMIUM"});
     }
 }

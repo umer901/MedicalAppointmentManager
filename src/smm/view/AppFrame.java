@@ -19,7 +19,9 @@ public class AppFrame extends JFrame {
     public final DefaultListModel<String> navModel = new DefaultListModel<>();
     public final Map<String, JPanel> pages = new LinkedHashMap<>();
     public final AppController controller;
-
+    public void addExternalPage(String key, JPanel panel) {
+        addPage(key, panel);   // reuse the private helper
+    }
     public AppFrame(AppController controller) {
         super("Smart Medical Booking App");
         this.controller = controller;

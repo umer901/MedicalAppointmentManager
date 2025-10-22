@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.*;
 
-public class AppModel {
+public class AppModel implements TimeObserver{
     public final UserProfile profile = new UserProfile();
     public final java.util.List<Appointment> appointments = new ArrayList<>();
     public final java.util.List<HistoryRecord> history = new ArrayList<>();
@@ -68,5 +68,25 @@ public class AppModel {
 
     public void markInvoicePaid(UUID invoiceId) {
         invoices.stream().filter(i -> i.id.equals(invoiceId)).findFirst().ifPresent(i -> i.paid = true);
+    }
+    public void onTimeAdvanced(TimeEvent event) {
+        // Mark old appointments as history
+        var past = new ArrayList<>(appointments);
+        for (var a : past) {
+            if (a.date.isBefore(event.newDate)) {
+                history.add(new HistoryRecord(
+                        a.date,
+                        a.type,
+                        "Completed: " + a.service + " with " + a.doctor + " @ " + a.medicalCenter));
+            }
+        }
+        appointments.removeIf(a -> a.date.isBefore(event.newDate));
+
+        // Optionally trigger random history
+        for (String ev : event.events) {
+            if (ev.contains("User fell ill")) {
+                history.add(new HistoryRecord(event.newDate, "Consultation", "Random illness treated"));
+            }
+        }
     }
 }
