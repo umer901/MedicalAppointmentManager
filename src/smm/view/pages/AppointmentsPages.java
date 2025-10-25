@@ -299,15 +299,15 @@ public static class ListPage extends NavAwarePanel {
                 spDate.setValue(cal.getTime());
                 spTime.setValue(cal.getTime());
             } catch (Exception ignored) {}
-            spPrice.setValue(appt.price);
+            // spPrice.setValue(appt.price);
             cbPaid.setSelected(appt.paid);
 
             JPanel form = UI.col(
                     UI.row(new JLabel("Type:"), tfType, new JLabel("Service:"), tfService),
                     UI.row(new JLabel("Doctor:"), tfDoctor, new JLabel("Center:"), tfCenter),
                     UI.row(new JLabel("Room:"), cbRoom, new JLabel("Equipment:"), tfEquip),
-                    UI.row(new JLabel("Date:"), spDate, new JLabel("Time:"), spTime),
-                    UI.row(new JLabel("Base Price (€):"), spPrice, cbPaid)
+                    UI.row(new JLabel("Date:"), spDate, new JLabel("Time:"), spTime)
+                    // UI.row(new JLabel("Base Price (€):"), spPrice, cbPaid)
             );
 
             JButton save = new JButton("Save");
