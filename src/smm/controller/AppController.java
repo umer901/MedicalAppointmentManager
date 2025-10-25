@@ -84,6 +84,11 @@ public class AppController implements ControllerInterface {
         if (uiEnabled && view != null) view.refreshAll();
         return 0;
     }
+public boolean isModuleEnabled(String moduleKey) { return enabledModules.contains(moduleKey); }
+public java.util.Set<String> getEnabledModules() {
+    return java.util.Collections.unmodifiableSet(enabledModules);
+}
+
 
     @Override
     public boolean enableUIView() {

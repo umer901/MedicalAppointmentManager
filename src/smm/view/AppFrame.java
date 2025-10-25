@@ -12,7 +12,7 @@ import java.util.Map;
 
 public class AppFrame extends JFrame {
     public interface Refreshable { void refresh(); }
-
+    private boolean suppressNavEvents = false;
     public final CardLayout cards = new CardLayout();
     public final JPanel content = new JPanel(cards);
     public final JList<String> nav;
@@ -60,13 +60,57 @@ public class AppFrame extends JFrame {
         addPage("Reminders • Add / Edit", new RemindersPages.EditPage(controller, this::refreshAll));
         addPage("User Profile", new UserProfilePage(controller, this::refreshAll));
         addPage("Doctor / Admin View", new DoctorAdminPage(controller));
+        addPage("Settings • Features", new FeaturesPage(controller, this));
 
         nav.addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) navigateTo(nav.getSelectedValue());
+            if (suppressNavEvents || e.getValueIsAdjusting()) return;
+            String sel = nav.getSelectedValue();
+            if (sel != null) navigateTo(sel);
         });
 
         nav.setSelectedIndex(0);
     }
+// Decide if a page should be visible given enabled modules
+private boolean isPageAllowedByFeatures(String key) {
+    var on = controller.getEnabledModules();
+    if (key.startsWith("Appointments")) return on.contains("APPOINTMENTS");
+    if (key.equals("Calendar"))         return on.contains("APPOINTMENTS");
+
+    if (key.startsWith("Medical History")) return on.contains("MEDICAL_HISTORY");
+
+    if (key.startsWith("Payment")) return on.contains("PAYMENT");
+
+    if (key.startsWith("Reminders")) return on.contains("REMINDERS");
+
+    // Always visible:
+    // Home / Dashboard, Insurance • Overview, User Profile, Doctor / Admin View,
+    // Settings • Features, Time Event System
+    return true;
+}
+
+/** Public: called after toggles to recompute the left navigation */
+public void rebuildNavigationByFeatures() {
+    suppressNavEvents = true;                 // start suppressing
+
+    String current = nav.getSelectedValue();
+    navModel.clear();
+    for (String k : pages.keySet()) {
+        if (isPageAllowedByFeatures(k)) navModel.addElement(k);
+    }
+
+    if (current == null || !isPageAllowedByFeatures(current)) {
+        current = navModel.size() > 0 ? navModel.get(0) : null;
+    }
+
+    if (current != null) {
+        // show without triggering listener
+        cards.show(content, current);
+        nav.setSelectedValue(current, true);
+    }
+
+    suppressNavEvents = false;                // done
+}
+
 
     private void addPage(String key, JPanel panel) {
         pages.put(key, panel);
@@ -84,15 +128,15 @@ public class AppFrame extends JFrame {
         JPanel p = pages.get(key);
         if (p instanceof Refreshable r) r.refresh();
     }
+public void refreshAll() {
+    for (JPanel p : pages.values()) if (p instanceof Refreshable r) r.refresh();
+    rebuildNavigationByFeatures();   // <— add this line
+}
 
-    public void refreshAll() {
-        for (JPanel p : pages.values()) if (p instanceof Refreshable r) r.refresh();
-    }
+public void navigateTo(String key) {
+    refreshAll();                 // keep this line if you like it
+    showCard(key);
+    // nav.setSelectedValue(key, true); // you can remove this if you prefer
+}
 
-    // NEW: navigation publique pour les panels
-    public void navigateTo(String key) {
-        refreshAll();
-        showCard(key);
-        nav.setSelectedValue(key, true);
-    }
 }
