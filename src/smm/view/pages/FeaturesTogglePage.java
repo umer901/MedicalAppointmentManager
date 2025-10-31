@@ -1,6 +1,6 @@
 package smm.view.pages;
 
-import smm.controller.AppController;
+import smm.controller.Controller;
 import smm.view.NavAwarePanel;
 import smm.view.UI;
 
@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class FeaturesTogglePage extends NavAwarePanel {
-    private final AppController c;
+    private final Controller c;
 
     private final JCheckBox cbAppointments = new JCheckBox("Appointments");
     private final JCheckBox cbHistory      = new JCheckBox("Medical History");
@@ -22,7 +22,7 @@ public class FeaturesTogglePage extends NavAwarePanel {
     private final JRadioButton rbNorm = new JRadioButton("Insurance: Normal");
     private final JRadioButton rbPrem = new JRadioButton("Insurance: Premium");
 
-    public FeaturesTogglePage(AppController controller) {
+    public FeaturesTogglePage(Controller controller) {
         this.c = controller;
         setLayout(new BorderLayout(10,10));
 
@@ -47,12 +47,6 @@ public class FeaturesTogglePage extends NavAwarePanel {
         cbHistory.setSelected(c.isModuleEnabled("MEDICAL_HISTORY"));
         cbPayment.setSelected(c.isModuleEnabled("PAYMENT"));
         cbReminders.setSelected(c.isModuleEnabled("REMINDERS"));
-
-        switch (c.getInsurance()) {
-            case MINIMAL -> rbMin.setSelected(true);
-            case NORMAL  -> rbNorm.setSelected(true);
-            case PREMIUM -> rbPrem.setSelected(true);
-        }
     }
 
     private void applyChanges() {

@@ -1,6 +1,6 @@
 package smm.view.pages;
 
-import smm.controller.AppController;
+import smm.controller.Controller;
 import smm.model.HistoryRecord;
 import smm.view.NavAwarePanel;
 import smm.view.UI;
@@ -13,12 +13,12 @@ import java.util.*;
 public class HistoryPages {
 
     public static class OverviewPage extends NavAwarePanel {
-        private final AppController c;
+        private final Controller c;
         private final DefaultTableModel model = new DefaultTableModel(new Object[]{"Date","Type","Details"}, 0);
         private final JTextField tfSearch = new JTextField(20);
         private final JComboBox<String> cbSort = new JComboBox<>(new String[]{"by date desc","by type","by doctor (demo)"});
 
-        public OverviewPage(AppController c) {
+        public OverviewPage(Controller c) {
             this.c = c;
             setLayout(new BorderLayout());
             JTable table = new JTable(model); table.setRowHeight(22);
@@ -58,10 +58,10 @@ public class HistoryPages {
     }
 
     public static class RecordDetailsPage extends NavAwarePanel {
-        private final AppController c;
+        private final Controller c;
         private final JTextArea area = new JTextArea(12, 60);
 
-        public RecordDetailsPage(AppController c) {
+        public RecordDetailsPage(Controller c) {
             this.c = c;
             setLayout(new BorderLayout());
             area.setEditable(false);
@@ -79,11 +79,11 @@ public class HistoryPages {
     }
 
     public static class AddRecordPage extends NavAwarePanel {
-        private final AppController c; private final Runnable after;
+        private final Controller c; private final Runnable after;
         private final JComboBox<String> cbKind = new JComboBox<>(new String[]{"Consultation","Surgery","Prescription"});
         private final JTextField tfDetails = new JTextField(30);
 
-        public AddRecordPage(AppController c, Runnable after) {
+        public AddRecordPage(Controller c, Runnable after) {
             this.c = c; this.after = after;
             setLayout(new BorderLayout());
             JButton add = new JButton("Add");

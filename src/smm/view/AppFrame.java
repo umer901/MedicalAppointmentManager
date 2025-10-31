@@ -1,7 +1,7 @@
 // imports identiques
 package smm.view;
 
-import smm.controller.AppController;
+import smm.controller.Controller;
 import smm.view.pages.*;
 
 import javax.swing.*;
@@ -18,11 +18,11 @@ public class AppFrame extends JFrame {
     public final JList<String> nav;
     public final DefaultListModel<String> navModel = new DefaultListModel<>();
     public final Map<String, JPanel> pages = new LinkedHashMap<>();
-    public final AppController controller;
+    public final Controller controller;
     public void addExternalPage(String key, JPanel panel) {
         addPage(key, panel);   // reuse the private helper
     }
-    public AppFrame(AppController controller) {
+    public AppFrame(Controller controller) {
         super("Smart Medical Booking App");
         this.controller = controller;
 

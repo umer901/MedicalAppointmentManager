@@ -1,6 +1,6 @@
 package smm.view.pages;
 
-import smm.controller.AppController;
+import smm.controller.Controller;
 import smm.model.Reminder;
 import smm.view.NavAwarePanel;
 import smm.view.UI;
@@ -16,10 +16,10 @@ import java.util.UUID;
 public class RemindersPages {
 
     public static class DashboardPage extends NavAwarePanel {
-        private final AppController c; private final Runnable after;
+        private final Controller c; private final Runnable after;
         private final DefaultTableModel model = new DefaultTableModel(new Object[]{"ID","Type","Text","When","Enabled"}, 0);
 
-        public DashboardPage(AppController c, Runnable after) {
+        public DashboardPage(Controller c, Runnable after) {
             this.c = c; this.after = after;
             setLayout(new BorderLayout());
             JTable t = new JTable(model) {
@@ -51,12 +51,12 @@ public class RemindersPages {
     }
 
     public static class EditPage extends NavAwarePanel {
-        private final AppController c; private final Runnable after;
+        private final Controller c; private final Runnable after;
         private final JComboBox<String> cbType = new JComboBox<>(new String[]{"appointment","medication"});
         private final JTextField tfText = new JTextField(20);
         private final JSpinner spWhen = new JSpinner(new SpinnerDateModel(new Date(), null, null, Calendar.MINUTE));
 
-        public EditPage(AppController c, Runnable after) {
+        public EditPage(Controller c, Runnable after) {
             this.c = c; this.after = after;
             setLayout(new BorderLayout());
             ((JSpinner.DateEditor)spWhen.getEditor()).getFormat().applyPattern("yyyy-MM-dd HH:mm");

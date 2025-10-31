@@ -1,6 +1,6 @@
 package smm.view.pages;
 
-import smm.controller.AppController;
+import smm.controller.Controller;
 import smm.model.Appointment;
 import smm.model.InsuranceLevel;
 import smm.view.NavAwarePanel;
@@ -19,7 +19,7 @@ public class AppointmentsPages {
 /* -------- List Page (improved + fixes) -------- */
 /* -------- List Page (with Details popup) -------- */
 public static class ListPage extends NavAwarePanel {
-    private final AppController c;
+    private final Controller c;
 
     // --- Table
     private final DefaultTableModel model = new DefaultTableModel(
@@ -39,7 +39,7 @@ public static class ListPage extends NavAwarePanel {
     private final JSpinner spTo   = new JSpinner(new SpinnerDateModel(new Date(System.currentTimeMillis()+30L*86400000), null, null, Calendar.DAY_OF_MONTH));
     private final JComboBox<String> cbSort = new JComboBox<>(new String[]{"Date ↑","Date ↓","Type","Doctor"});
 
-    public ListPage(AppController c) {
+    public ListPage(Controller c) {
         this.c = c;
         setLayout(new BorderLayout(8,8));
 
@@ -341,7 +341,7 @@ public static class ListPage extends NavAwarePanel {
 
  /* -------- Create Booking (updated) -------- */
 public static class CreatePage extends NavAwarePanel {
-    private final AppController c;
+    private final Controller c;
     private final Runnable after;
 
     private final JComboBox cbType = new JComboBox<>(new String[]{"Consultation", "Surgery", "Follow-up"});
@@ -384,7 +384,7 @@ public static class CreatePage extends NavAwarePanel {
         "General", new String[]{"Dr. Smith","Dr. Patel","Dr. Garcia"}
     );
 
-    public CreatePage(AppController c, Runnable afterSave) {
+    public CreatePage(Controller c, Runnable afterSave) {
         this.c = c; this.after = afterSave;
 
         setLayout(new BorderLayout(16,0));
@@ -491,10 +491,10 @@ public static class CreatePage extends NavAwarePanel {
 
     /* -------- Details -------- */
     public static class DetailsPage extends NavAwarePanel {
-        private final AppController c;
+        private final Controller c;
         private final JTextArea area = new JTextArea(14, 60);
 
-        public DetailsPage(AppController c) {
+        public DetailsPage(Controller c) {
             this.c = c;
             setLayout(new BorderLayout());
             area.setEditable(false);

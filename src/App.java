@@ -1,4 +1,4 @@
-import smm.controller.AppController;
+import smm.controller.Controller;
 import smm.model.AppModel;
 import smm.model.TimeEventSystem;
 import smm.view.AppFrame;
@@ -14,7 +14,7 @@ public class App {
 
         // Model + Controller
         var model = new AppModel();
-        var controller = new AppController(model);
+        var controller = new Controller(model);
 
         // Time Event System (Observer pattern)
         var tes = new TimeEventSystem();

@@ -1,6 +1,6 @@
 package smm.view.pages;
 
-import smm.controller.AppController;
+import smm.controller.Controller;
 import smm.model.InsuranceLevel;
 import smm.view.NavAwarePanel;
 import smm.view.UI;
@@ -19,7 +19,7 @@ import java.util.List;
  */
 public class FeatureSettingsPage extends NavAwarePanel {
 
-    private final AppController c;
+    private final Controller c;
 
     // Appointments radios
     private final JRadioButton apptOn  = new JRadioButton("Enable");
@@ -42,7 +42,7 @@ public class FeatureSettingsPage extends NavAwarePanel {
     private final JRadioButton insNorm = new JRadioButton("Normal");
     private final JRadioButton insPrem = new JRadioButton("Premium");
 
-    public FeatureSettingsPage(AppController controller) {
+    public FeatureSettingsPage(Controller controller) {
         this.c = controller;
         setLayout(new BorderLayout(12,12));
 
@@ -131,11 +131,5 @@ public class FeatureSettingsPage extends NavAwarePanel {
 
         remOn.setSelected(c.isModuleEnabled("REMINDERS"));
         remOff.setSelected(!c.isModuleEnabled("REMINDERS"));
-
-        switch (c.getInsurance()) {
-            case MINIMAL -> insMin.setSelected(true);
-            case NORMAL  -> insNorm.setSelected(true);
-            case PREMIUM -> insPrem.setSelected(true);
-        }
     }
 }

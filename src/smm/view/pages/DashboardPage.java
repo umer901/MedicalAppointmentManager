@@ -1,6 +1,6 @@
 package smm.view.pages;
 
-import smm.controller.AppController;
+import smm.controller.Controller;
 import smm.model.Appointment;
 import smm.view.NavAwarePanel;
 import smm.view.UI;
@@ -14,13 +14,13 @@ import java.util.Comparator;
 import java.util.Optional;
 
 public class DashboardPage extends NavAwarePanel {
-    private final AppController c;
+    private final Controller c;
     private final JLabel welcome = UI.h1("");
     private final JLabel policyLabel = new JLabel("");
     private final JTextArea notifications = mkArea();
     private final JTextArea doctorAlert = mkArea();
 
-    public DashboardPage(AppController c) {
+    public DashboardPage(Controller c) {
         this.c = c;
         setLayout(new BorderLayout(12, 12));
         setBorder(new EmptyBorder(10, 10, 10, 10));

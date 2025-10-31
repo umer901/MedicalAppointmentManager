@@ -1,6 +1,6 @@
 package smm.view.pages;
 
-import smm.controller.AppController;
+import smm.controller.Controller;
 import smm.model.InsuranceLevel;
 import smm.view.NavAwarePanel;
 import smm.view.UI;
@@ -9,14 +9,14 @@ import javax.swing.*;
 import java.awt.*;
 
 public class InsurancePage extends NavAwarePanel {
-    private final AppController c; private final Runnable after;
+    private final Controller c; private final Runnable after;
     private final JLabel policy = new JLabel();
     private final ButtonGroup grp = new ButtonGroup();
     private final JRadioButton rbMin = new JRadioButton("Minimal");
     private final JRadioButton rbNorm = new JRadioButton("Normal");
     private final JRadioButton rbPrem = new JRadioButton("Premium");
 
-    public InsurancePage(AppController c, Runnable after) {
+    public InsurancePage(Controller c, Runnable after) {
         this.c = c; this.after = after;
         setLayout(new BorderLayout());
 

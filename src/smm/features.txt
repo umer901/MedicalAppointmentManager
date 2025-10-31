@@ -1,0 +1,10 @@
+MedicalBookingApp/Mandatory/MedicalHistory-Appointment-Insurance-Payment-Reminders
+MedicalHistory/Mandatory/Records-SearchHistory-SortHistory
+Records/Optional/AddConsultation-AddSurgeries-AddPrescriptions
+SearchHistory/Or/BasicSearch-AdvancedSearch
+Appointment/Mandatory/CreateBooking-Modify-Cancel
+CreateBooking/Optional/AddToCalendar
+Insurance/Or/Minimal-Normal-Premium
+Payment/Mandatory/Pricing-AdvancePayment-CheckBalance
+Pricing/Or/OutOfPocket-PriceReduction-DeferredPayment
+Reminders/Or/AppointmentReminder-MedicationReminder

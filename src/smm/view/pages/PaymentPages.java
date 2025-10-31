@@ -1,6 +1,6 @@
 package smm.view.pages;
 
-import smm.controller.AppController;
+import smm.controller.Controller;
 import smm.model.Invoice;
 import smm.view.NavAwarePanel;
 import smm.view.UI;
@@ -13,11 +13,11 @@ import java.util.UUID;
 public class PaymentPages {
 
     public static class BillingPage extends NavAwarePanel {
-        private final AppController c; private final Runnable after;
+        private final Controller c; private final Runnable after;
         private final DefaultTableModel model = new DefaultTableModel(new Object[]{"Invoice","Date","Amount (€)","Paid"}, 0);
         private final JTable table = new JTable(model);
 
-        public BillingPage(AppController c, Runnable after) {
+        public BillingPage(Controller c, Runnable after) {
             this.c = c; this.after = after;
             setLayout(new BorderLayout());
             table.setRowHeight(22);
@@ -49,10 +49,10 @@ public class PaymentPages {
     }
 
     public static class PricingPage extends NavAwarePanel {
-        private final AppController c;
+        private final Controller c;
         private final JTextArea area = new JTextArea(10, 60);
 
-        public PricingPage(AppController c) {
+        public PricingPage(Controller c) {
             this.c = c;
             setLayout(new BorderLayout());
             area.setEditable(false);
@@ -75,10 +75,10 @@ public class PaymentPages {
     }
 
     public static class CreditPage extends NavAwarePanel {
-        private final AppController c;
+        private final Controller c;
         private final JLabel bal = new JLabel();
 
-        public CreditPage(AppController c) {
+        public CreditPage(Controller c) {
             this.c = c;
             setLayout(new BorderLayout());
             JButton add = new JButton("Add 10€ (demo)");

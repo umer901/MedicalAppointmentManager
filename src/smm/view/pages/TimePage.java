@@ -1,6 +1,6 @@
 package smm.view.pages;
 
-import smm.controller.AppController;
+import smm.controller.Controller;
 import smm.model.TimeEvent;
 import smm.model.TimeEventSystem;
 import smm.model.TimeObserver;
@@ -11,11 +11,11 @@ import javax.swing.*;
 import java.awt.*;
 
 public class TimePage extends NavAwarePanel implements TimeObserver {
-    private final AppController c;
+    private final Controller c;
     private final TimeEventSystem tes;
     private final JTextArea log = new JTextArea(10, 60);
 
-    public TimePage(AppController c, TimeEventSystem tes) {
+    public TimePage(Controller c, TimeEventSystem tes) {
         this.c = c; this.tes = tes;
         tes.addObserver(this);
         setLayout(new BorderLayout(10,10));

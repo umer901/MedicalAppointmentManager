@@ -1,6 +1,6 @@
 package smm.view.pages;
 
-import smm.controller.AppController;
+import smm.controller.Controller;
 import smm.model.InsuranceLevel;
 import smm.view.AppFrame;
 import smm.view.NavAwarePanel;
@@ -12,7 +12,7 @@ import java.util.*;
 import java.util.List;
 
 public class FeaturesPage extends NavAwarePanel {
-    private final AppController c;
+    private final Controller c;
     private final AppFrame frame;
 
     // Module checkboxes
@@ -27,7 +27,7 @@ public class FeaturesPage extends NavAwarePanel {
     private final JRadioButton rbNor = new JRadioButton("Normal");
     private final JRadioButton rbPre = new JRadioButton("Premium");
 
-    public FeaturesPage(AppController controller, AppFrame frame) {
+    public FeaturesPage(Controller controller, AppFrame frame) {
         this.c = controller;
         this.frame = frame;
 

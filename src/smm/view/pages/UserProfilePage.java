@@ -1,13 +1,13 @@
 package smm.view.pages;
 
-import smm.controller.AppController;
+import smm.controller.Controller;
 import smm.view.NavAwarePanel;
 
 import javax.swing.*;
 import java.awt.*;
 
 public class UserProfilePage extends NavAwarePanel {
-    private final AppController c;
+    private final Controller c;
     private final Runnable after;
 
     private final JTextField tfName = new JTextField(16);
@@ -19,7 +19,7 @@ public class UserProfilePage extends NavAwarePanel {
     private final JCheckBox cbInApp = new JCheckBox("In-App");
     private final JCheckBox cb2FA = new JCheckBox("Enable 2FA");
 
-    public UserProfilePage(AppController c, Runnable after) {
+    public UserProfilePage(Controller c, Runnable after) {
         this.c = c;
         this.after = after;
 

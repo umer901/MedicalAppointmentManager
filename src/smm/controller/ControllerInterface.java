@@ -8,4 +8,5 @@ public interface ControllerInterface {
     public boolean enableUIView();
     public boolean disableUIView();
     public String[] getStateAsLog();
+    public String[] getStateAsLog1();
 }

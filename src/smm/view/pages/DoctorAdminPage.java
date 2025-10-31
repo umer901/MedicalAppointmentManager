@@ -1,6 +1,6 @@
 package smm.view.pages;
 
-import smm.controller.AppController;
+import smm.controller.Controller;
 import smm.view.NavAwarePanel;
 import smm.view.UI;
 
@@ -8,10 +8,10 @@ import javax.swing.*;
 import java.awt.*;
 
 public class DoctorAdminPage extends NavAwarePanel {
-    private final AppController c;
+    private final Controller c;
     private final JTextArea area = new JTextArea(14, 60);
 
-    public DoctorAdminPage(AppController c) {
+    public DoctorAdminPage(Controller c) {
         this.c = c;
         setLayout(new BorderLayout());
         area.setEditable(false);
