@@ -65,7 +65,7 @@ public class FeaturesPage extends NavAwarePanel {
         List<String> activations   = new ArrayList<>();
         List<String> deactivations = new ArrayList<>();
 
-        for (String m : after)  if (!before.contains(m)) deactivations.remove(m); // no-op; keep symmetric
+        // for (String m : after)  if (!before.contains(m)) deactivations.remove(m); // no-op; keep symmetric
         for (String m : after)  if (!before.contains(m)) activations.add(m);
         for (String m : before) if (!after.contains(m))  deactivations.add(m);
 

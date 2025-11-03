@@ -1,9 +1,0 @@
-window mainWindow
-label userName mainWindow-TopLeft
-label insuranceLevel mainWindow-TopRight
-label premiumActive mainWindow-BottomRight
-buttonMedium appointments mainWindow-Center
-window appointmentsList
-buttonSmall newAppointment mainWindow-BottomLeft
-icon warning unpaidInvoices mainWindow-TopRight
-buttonSmall logout mainWindow-TopRight

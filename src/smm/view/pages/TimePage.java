@@ -34,6 +34,7 @@ public class TimePage extends NavAwarePanel implements TimeObserver {
 
         add(UI.row(plus1d, plus7d, random), BorderLayout.SOUTH);
     }
+
     @Override
     public void onTimeAdvanced(TimeEvent event) {
         // prepend a small header
@@ -68,12 +69,14 @@ public class TimePage extends NavAwarePanel implements TimeObserver {
             }
         }
 
-    log.append("Appointments & history updated.\n");
+        log.append("Appointments & history updated.\n");
 
-    // Refresh whole UI so Lists/History reflect the change
-    c.getView().refreshAll();
+        // write unified log3 with TES info (keeps your state_log and state_log1 unchanged)
+        c.logTESAdvance3(event, java.util.List.copyOf(event.events));
+
+        // Refresh whole UI so Lists/History reflect the change
+        c.getView().refreshAll();
     }
-
 
     @Override public void refresh() {}
 }

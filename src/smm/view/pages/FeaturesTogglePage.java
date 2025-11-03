@@ -42,15 +42,21 @@ public class FeaturesTogglePage extends NavAwarePanel {
     }
 
     @Override public void refresh() {
-        // reflect current state in the checkboxes/radios
         cbAppointments.setSelected(c.isModuleEnabled("APPOINTMENTS"));
         cbHistory.setSelected(c.isModuleEnabled("MEDICAL_HISTORY"));
         cbPayment.setSelected(c.isModuleEnabled("PAYMENT"));
         cbReminders.setSelected(c.isModuleEnabled("REMINDERS"));
+
+        switch (c.getModel().profile.insurance) {
+            case MINIMAL -> rbMin.setSelected(true);
+            case NORMAL  -> rbNorm.setSelected(true);
+            case PREMIUM -> rbPrem.setSelected(true);
+        }
     }
 
     private void applyChanges() {
-        List<String> act = new ArrayList<>(), deact = new ArrayList<>();
+        java.util.List<String> act = new java.util.ArrayList<>(), deact = new java.util.ArrayList<>();
+
         if (cbAppointments.isSelected()) act.add("APPOINTMENTS"); else deact.add("APPOINTMENTS");
         if (cbHistory.isSelected())      act.add("MEDICAL_HISTORY"); else deact.add("MEDICAL_HISTORY");
         if (cbPayment.isSelected())      act.add("PAYMENT"); else deact.add("PAYMENT");
@@ -60,8 +66,12 @@ public class FeaturesTogglePage extends NavAwarePanel {
         if (rbNorm.isSelected()) act.add("INSURANCE_NORMAL");
         if (rbPrem.isSelected()) act.add("INSURANCE_PREMIUM");
 
-        int code = c.activate(deact.toArray(new String[0]), act.toArray(new String[0]));
+        int code = c.activate(
+            deact.isEmpty()? null : deact.toArray(new String[0]),
+            act.isEmpty()?   null : act.toArray(new String[0])
+        );
         JOptionPane.showMessageDialog(this, code==0 ? "Updated!" : ("Error code "+code));
         go("Home / Dashboard");
     }
+
 }
