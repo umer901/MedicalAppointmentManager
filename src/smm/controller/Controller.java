@@ -36,6 +36,10 @@ public class Controller implements ControllerInterface {
     // --- NEW: unified log3 TES section (kept between writes) ---
     private final java.util.List<String> tesSection3 = new java.util.ArrayList<>();
 
+    public Controller() {
+        this(new smm.model.AppModel()); 
+    }
+
     public Controller(AppModel model) { this.model = model; }
 
     public AppModel getModel() { return model; }
@@ -55,44 +59,43 @@ public class Controller implements ControllerInterface {
      */
     @Override
     public int activate(String[] deactivations, String[] activations) {
-        // Deactivate modules or change insurance
-        if (deactivations != null) {
-            for (String name : deactivations) {
-                String f = normalize(name);
-                if (!FEATURE_MODEL.contains(f)) return 1;
-                if (isInsurance(f)) {
-                    // “Deactivating” an insurance level means falling back to NORMAL (safe default)
-                    model.profile.insurance = InsuranceLevel.NORMAL;
-                } else {
-                    enabledModules.remove(f);
-                }
+        // normalize + sort for determinism
+        List<String> deact = new ArrayList<>();
+        if (deactivations != null) for (String s : deactivations) deact.add(normalize(s));
+        Collections.sort(deact);
+
+        List<String> act = new ArrayList<>();
+        if (activations != null) for (String s : activations) act.add(normalize(s));
+        Collections.sort(act);
+
+        // --- DEACTIVATE FIRST ---
+        for (String f : deact) {
+            if (!FEATURE_MODEL.contains(f)) return 1;
+            if (isInsurance(f)) {
+                model.profile.insurance = InsuranceLevel.NORMAL;   // safe default
+            } else {
+                enabledModules.remove(f);
             }
         }
 
-        // Activate modules or set insurance
-        if (activations != null) {
-            for (String name : activations) {
-                String f = normalize(name);
-                if (!FEATURE_MODEL.contains(f)) return 2;
-                if (isInsurance(f)) {
-                    switch (f) {
-                        case "INSURANCE_MINIMAL" -> model.profile.insurance = InsuranceLevel.MINIMAL;
-                        case "INSURANCE_NORMAL"  -> model.profile.insurance = InsuranceLevel.NORMAL;
-                        case "INSURANCE_PREMIUM" -> model.profile.insurance = InsuranceLevel.PREMIUM;
-                    }
-                } else {
-                    enabledModules.add(f);
+        // --- THEN ACTIVATE ---
+        for (String f : act) {
+            if (!FEATURE_MODEL.contains(f)) return 2;
+            if (isInsurance(f)) {
+                switch (f) {
+                    case "INSURANCE_MINIMAL" -> model.profile.insurance = InsuranceLevel.MINIMAL;
+                    case "INSURANCE_NORMAL"  -> model.profile.insurance = InsuranceLevel.NORMAL;
+                    case "INSURANCE_PREMIUM" -> model.profile.insurance = InsuranceLevel.PREMIUM;
                 }
+            } else {
+                enabledModules.add(f);
             }
         }
 
-        // Non-blocking: if UI is up, just ask it to refresh
         if (uiEnabled && view != null) view.refreshAll();
-
-        // Write logs after any (de)activation
         writeStateLog();
         writeStateLog1();
-        writeStateLog3();   // <-- NEW unified log
+        writeStateLog3();   // your unified log (optional for the tool)
         return 0;
     }
 
@@ -149,7 +152,7 @@ public class Controller implements ControllerInterface {
     @Override
     public String[] getStateAsLog() {
         List<String> lines = new ArrayList<>();
-        lines.add("timestamp:" + LocalDateTime.now());
+        // lines.add("timestamp:" + LocalDateTime.now());
         lines.add("uiEnabled:" + uiEnabled);
         lines.add("user:" + model.profile.name);
         lines.add("insurance:" + model.profile.insurance);
@@ -232,7 +235,7 @@ public class Controller implements ControllerInterface {
         List<String> lines = new ArrayList<>();
 
         // --- Time & UI
-        lines.add("time now=" + LocalDateTime.now());
+        // lines.add("time now=" + LocalDateTime.now());
         lines.add("ui enabled=" + uiEnabled);
 
         // --- User & policy
