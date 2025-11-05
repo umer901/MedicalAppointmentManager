@@ -4,13 +4,13 @@ import smm.model.*;
 import smm.view.AppFrame;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.*;
 import java.io.FileWriter;
 import java.io.IOException;
 
-/** Application controller that now implements the provided ControllerInterface. */
+/** Application controller that implements the provided ControllerInterface. */
 public class Controller implements ControllerInterface {
     private final AppModel model;
 
@@ -19,47 +19,41 @@ public class Controller implements ControllerInterface {
     private boolean uiEnabled = false;
 
     // --- “Feature model” known to the controller (names are UPPERCASE) ---
-    // Modules/features that can be toggled on/off
     private static final Set<String> FEATURE_MODEL = Set.of(
-            "APPOINTMENTS", "MEDICAL_HISTORY", "PAYMENT", "REMINDERS",
-            "INSURANCE_MINIMAL", "INSURANCE_NORMAL", "INSURANCE_PREMIUM"
+        "APPOINTMENTS", "MEDICAL_HISTORY", "PAYMENT", "REMINDERS",
+        "APPOINTMENT_REMINDER", "MEDICATION_REMINDER",  // NEW sub-features
+        "INSURANCE_MINIMAL", "INSURANCE_NORMAL", "INSURANCE_PREMIUM",
+        "OUT_OF_POCKET", "PRICE_REDUCTION", "DEFERRED_PAYMENT" // NEW pricing features
     );
 
-    // Current on/off state for high-level modules (insurance is mutually exclusive, handled separately)
+    // Current on/off state (parent REMINDERS + both children start enabled)
     private final Set<String> enabledModules = new HashSet<>(Set.of(
-            "APPOINTMENTS", "MEDICAL_HISTORY", "PAYMENT", "REMINDERS"
+        "APPOINTMENTS", "MEDICAL_HISTORY", "PAYMENT",
+        "REMINDERS", "APPOINTMENT_REMINDER", "MEDICATION_REMINDER"
     ));
 
     // Selection used by pages
     private UUID selectedAppointmentId;
 
-    // --- NEW: unified log3 TES section (kept between writes) ---
+    // --- unified log3 TES section (kept between writes) ---
     private final java.util.List<String> tesSection3 = new java.util.ArrayList<>();
 
     public Controller() {
-        this(new smm.model.AppModel()); 
+        this(new smm.model.AppModel());
     }
 
     public Controller(AppModel model) { this.model = model; }
 
     public AppModel getModel() { return model; }
 
-    /** Optional: expose the view if callers need it */
     public AppFrame getView() { return view; }
 
     /* -----------------------------------------------------------
-       ControllerInterface methods (implemented)
+       ControllerInterface methods
        ----------------------------------------------------------- */
 
-    /**
-     * Activate/deactivate features that exist in the feature model only.
-     * Returns 0 on success; non-zero codes on errors:
-     *   1 -> deactivation refers to an unknown feature
-     *   2 -> activation refers to an unknown feature
-     */
     @Override
     public int activate(String[] deactivations, String[] activations) {
-        // normalize + sort for determinism
         List<String> deact = new ArrayList<>();
         if (deactivations != null) for (String s : deactivations) deact.add(normalize(s));
         Collections.sort(deact);
@@ -72,13 +66,15 @@ public class Controller implements ControllerInterface {
         for (String f : deact) {
             if (!FEATURE_MODEL.contains(f)) return 1;
             if (isInsurance(f)) {
-                model.profile.insurance = InsuranceLevel.NORMAL;   // safe default
+                model.profile.insurance = InsuranceLevel.NORMAL;
+            } else if (isPricing(f)) {
+                model.pricing = AppModel.PricingType.OUT_OF_POCKET;
             } else {
                 enabledModules.remove(f);
             }
         }
 
-        // --- THEN ACTIVATE ---
+        // --- ACTIVATE ---
         for (String f : act) {
             if (!FEATURE_MODEL.contains(f)) return 2;
             if (isInsurance(f)) {
@@ -86,6 +82,12 @@ public class Controller implements ControllerInterface {
                     case "INSURANCE_MINIMAL" -> model.profile.insurance = InsuranceLevel.MINIMAL;
                     case "INSURANCE_NORMAL"  -> model.profile.insurance = InsuranceLevel.NORMAL;
                     case "INSURANCE_PREMIUM" -> model.profile.insurance = InsuranceLevel.PREMIUM;
+                }
+            } else if (isPricing(f)) {
+                switch (f) {
+                    case "OUT_OF_POCKET"    -> model.pricing = AppModel.PricingType.OUT_OF_POCKET;
+                    case "PRICE_REDUCTION"  -> model.pricing = AppModel.PricingType.PRICE_REDUCTION;
+                    case "DEFERRED_PAYMENT" -> model.pricing = AppModel.PricingType.DEFERRED_PAYMENT;
                 }
             } else {
                 enabledModules.add(f);
@@ -95,15 +97,12 @@ public class Controller implements ControllerInterface {
         if (uiEnabled && view != null) view.refreshAll();
         writeStateLog();
         writeStateLog1();
-        writeStateLog3();   // your unified log (optional for the tool)
+        writeStateLog3();
         return 0;
     }
 
-    /** Used by the UI pages (you already rely on these) */
     public boolean isModuleEnabled(String moduleKey) { return enabledModules.contains(moduleKey); }
-    public java.util.Set<String> getEnabledModules() {
-        return java.util.Collections.unmodifiableSet(enabledModules);
-    }
+    public java.util.Set<String> getEnabledModules() { return java.util.Collections.unmodifiableSet(enabledModules); }
 
     @Override
     public boolean enableUIView() {
@@ -113,8 +112,8 @@ public class Controller implements ControllerInterface {
             uiEnabled = true;
             view.setVisible(true);
             view.refreshAll();
-            writeStateLog();  // optional, logs that the UI is now enabled
-            writeStateLog3(); // NEW unified log
+            writeStateLog();
+            writeStateLog3();
             return true;
         } catch (Exception e) {
             e.printStackTrace();
@@ -128,11 +127,11 @@ public class Controller implements ControllerInterface {
         try {
             uiEnabled = false;
             if (view != null) {
-                view.dispose();     // safer than just setVisible(false)
+                view.dispose();
                 view = null;
             }
-            writeStateLog();  // optional, logs that the UI is now disabled
-            writeStateLog3(); // NEW unified log
+            writeStateLog();
+            writeStateLog3();
             return true;
         } catch (Exception e) {
             e.printStackTrace();
@@ -140,125 +139,102 @@ public class Controller implements ControllerInterface {
         }
     }
 
-    /**
-     * Returns current state ONLY (no history), as unordered lines.
-     * Examples:
-     *   user:Hicham
-     *   insurance:PREMIUM
-     *   module:APPOINTMENTS=ON
-     *   appointments:count=3
-     *   invoices:unpaid=1
-     */
+    /* -----------------------------------------------------------
+       Logs
+       ----------------------------------------------------------- */
+
     @Override
     public String[] getStateAsLog() {
         List<String> lines = new ArrayList<>();
-        // lines.add("timestamp:" + LocalDateTime.now());
         lines.add("uiEnabled:" + uiEnabled);
         lines.add("user:" + model.profile.name);
         lines.add("insurance:" + model.profile.insurance);
+        lines.add("pricing:" + model.pricing);
 
-        // Modules ON/OFF
-        for (String m : List.of("APPOINTMENTS","MEDICAL_HISTORY","PAYMENT","REMINDERS")) {
+        // Parent modules
+        for (String m : List.of("APPOINTMENTS", "MEDICAL_HISTORY", "PAYMENT", "REMINDERS")) {
             lines.add("module:" + m + "=" + (enabledModules.contains(m) ? "ON" : "OFF"));
         }
 
-        // Aggregated counts
+        // --- NEW: Sub-features of Reminders
+        lines.add("module:APPOINTMENT_REMINDER=" + (enabledModules.contains("APPOINTMENT_REMINDER") ? "ON" : "OFF"));
+        lines.add("module:MEDICATION_REMINDER=" + (enabledModules.contains("MEDICATION_REMINDER") ? "ON" : "OFF"));
+
+        // Aggregated info
         long unpaid = model.invoices.stream().filter(i -> !i.paid).count();
         lines.add("appointments:count=" + model.appointments.size());
         lines.add("history:count=" + model.history.size());
         lines.add("invoices:total=" + model.invoices.size());
         lines.add("invoices:unpaid=" + unpaid);
         lines.add("reminders:enabled=" + model.reminders.stream().filter(r -> r.enabled).count());
-
-        // A couple of demonstrative detail lines (current policy & balance)
         lines.add("policy:" + model.currentPolicy());
-        // lines.add("creditBalance:" + String.format(java.util.Locale.ROOT, "%.2f", model.creditBalance));
-
         return lines.toArray(new String[0]);
     }
 
     @Override
     public String[] getStateAsLog1() {
         List<String> lines = new ArrayList<>();
-
-        // Always include the base window
         lines.add("window mainWindow");
-
-        // Dashboard elements (always visible)
         lines.add("label userName mainWindow-TopLeft");
         lines.add("label insuranceLevel mainWindow-TopRight");
 
-        // Insurance buttons — describe available coverage options
         switch (model.profile.insurance) {
             case MINIMAL -> lines.add("buttonSmall upgradeToNormal mainWindow-BottomRight");
             case NORMAL  -> lines.add("buttonSmall upgradeToPremium mainWindow-BottomRight");
             case PREMIUM -> lines.add("label premiumActive mainWindow-BottomRight");
         }
 
-        // --- Modules: add/remove visible buttons or windows depending on what’s enabled ---
         if (enabledModules.contains("APPOINTMENTS")) {
             lines.add("buttonMedium appointments mainWindow-Center");
             lines.add("window appointmentsList");
             lines.add("buttonSmall newAppointment mainWindow-BottomLeft");
         }
-
         if (enabledModules.contains("MEDICAL_HISTORY")) {
             lines.add("buttonMedium history mainWindow-LeftPanel");
             lines.add("window medicalHistory");
         }
-
         if (enabledModules.contains("PAYMENT")) {
             lines.add("buttonMedium payment mainWindow-RightPanel");
             lines.add("window invoicesList");
         }
-
         if (enabledModules.contains("REMINDERS")) {
             lines.add("buttonSmall reminders mainWindow-TopCenter");
             lines.add("window remindersDashboard");
         }
-
-        // You can describe other small icons or text appearing based on state
         if (model.invoices.stream().anyMatch(i -> !i.paid)) {
             lines.add("icon warning unpaidInvoices mainWindow-TopRight");
         }
-
-        // Add an always-present logout or exit button
         lines.add("buttonSmall logout mainWindow-TopRight");
-
         return lines.toArray(new String[0]);
     }
 
-    /* ----------------------- NEW: unified log3 API ----------------------- */
-
-    /** Build the unified, order-agnostic state log (business + UI + TES) */
+    /* ---------------- unified log3 ---------------- */
     public String[] getStateAsLog3() {
         List<String> lines = new ArrayList<>();
 
-        // --- Time & UI
-        // lines.add("time now=" + LocalDateTime.now());
         lines.add("ui enabled=" + uiEnabled);
-
-        // --- User & policy
         lines.add("user name=" + model.profile.name);
         lines.add("insurance level=" + model.profile.insurance);
         lines.add("policy current=" + model.currentPolicy());
+        lines.add("pricing current=" + model.currentPricing());
 
-        // --- Features (modules)
+        // Main features
         lines.add("feature APPOINTMENTS="    + (enabledModules.contains("APPOINTMENTS")    ? "ON" : "OFF"));
         lines.add("feature MEDICAL_HISTORY=" + (enabledModules.contains("MEDICAL_HISTORY") ? "ON" : "OFF"));
         lines.add("feature PAYMENT="         + (enabledModules.contains("PAYMENT")         ? "ON" : "OFF"));
         lines.add("feature REMINDERS="       + (enabledModules.contains("REMINDERS")       ? "ON" : "OFF"));
 
-        // --- Aggregates / counts
+        // --- NEW sub-features
+        lines.add("feature APPOINTMENT_REMINDER=" + (enabledModules.contains("APPOINTMENT_REMINDER") ? "ON" : "OFF"));
+        lines.add("feature MEDICATION_REMINDER="  + (enabledModules.contains("MEDICATION_REMINDER")  ? "ON" : "OFF"));
+
         long unpaid = model.invoices.stream().filter(i -> !i.paid).count();
         lines.add("count appointments=" + model.appointments.size());
         lines.add("count history=" + model.history.size());
         lines.add("count invoices=" + model.invoices.size());
         lines.add("count invoices_unpaid=" + unpaid);
         lines.add("count reminders_enabled=" + model.reminders.stream().filter(r -> r.enabled).count());
-        // lines.add("account credit_balance=" + String.format(java.util.Locale.ROOT, "%.2f", model.creditBalance));
 
-        // --- UI affordances (what is visible/enabled)
         lines.add("window mainWindow");
         lines.add("label userName mainWindow-TopLeft");
         lines.add("label insuranceLevel mainWindow-TopRight");
@@ -286,31 +262,20 @@ public class Controller implements ControllerInterface {
             lines.add("buttonSmall reminders mainWindow-TopCenter");
             lines.add("window remindersDashboard");
         }
-        if (unpaid > 0) {
-            lines.add("icon warning unpaidInvoices mainWindow-TopRight");
-        }
-
-        // Always-present logout
+        if (unpaid > 0) lines.add("icon warning unpaidInvoices mainWindow-TopRight");
         lines.add("buttonSmall logout mainWindow-TopRight");
-
-        // --- TES section (if any recent advance/events)
         lines.addAll(tesSection3);
-
         return lines.toArray(new String[0]);
     }
 
-    /** Persist unified log to state_log3.txt */
     private void writeStateLog3() {
         try (FileWriter fw = new FileWriter("state_log3.txt", false)) {
-            for (String line : getStateAsLog3()) {
-                fw.write(line + System.lineSeparator());
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+            for (String line : getStateAsLog3()) fw.write(line + System.lineSeparator());
+        } catch (IOException e) { e.printStackTrace(); }
     }
 
-    /** Called by TimePage when time advances — updates TES section + writes log3 */
+    /* ---------------- Remaining API methods unchanged ---------------- */
+
     public void logTESAdvance3(TimeEvent event, java.util.List<String> triggers) {
         tesSection3.clear();
         tesSection3.add("tes advanced from=" + event.oldDate + " to=" + event.newDate);
@@ -326,57 +291,52 @@ public class Controller implements ControllerInterface {
         writeStateLog3();
     }
 
-    /* -----------------------------------------------------------
-       Existing public API used by views (unchanged)
-       ----------------------------------------------------------- */
-
     public void setInsurance(InsuranceLevel lvl) {
         model.profile.insurance = lvl;
         if (uiEnabled && view != null) view.refreshAll();
-        writeStateLog3(); // NEW
+        writeStateLog3();
     }
 
     public Appointment createBooking(LocalDate date, LocalTime time, String type, String service,
                                      String doctor, String center, String room, String equip,
                                      double basePrice, boolean addToCalendar, boolean payNow) {
-        // If APPOINTMENTS module is OFF, we still allow creation (non-blocking),
-        // but you could reject with an exception if you want to enforce toggles strictly.
         Appointment a = model.createAppointment(
-                new Appointment(date, time, type, service, doctor, center, room, equip, basePrice),
-                addToCalendar, payNow);
+            new Appointment(date, time, type, service, doctor, center, room, equip, basePrice),
+            addToCalendar, payNow
+        );
         if (uiEnabled && view != null) view.refreshAll();
-        writeStateLog3(); // NEW
+        writeStateLog3();
         return a;
     }
 
     public void addHistory(String kind, String details) {
         model.history.add(new HistoryRecord(LocalDate.now(), kind, details));
         if (uiEnabled && view != null) view.refreshAll();
-        writeStateLog3(); // NEW
+        writeStateLog3();
     }
 
     public void payInvoice(UUID invoiceId) {
         model.markInvoicePaid(invoiceId);
         if (uiEnabled && view != null) view.refreshAll();
-        writeStateLog3(); // NEW
+        writeStateLog3();
     }
 
     public void setReminderEnabled(UUID id, boolean enabled) {
         model.reminders.stream().filter(r -> r.id.equals(id)).findFirst().ifPresent(r -> r.enabled = enabled);
         if (uiEnabled && view != null) view.refreshAll();
-        writeStateLog3(); // NEW
+        writeStateLog3();
     }
 
     public void setNotificationPrefs(boolean email, boolean sms, boolean inApp) {
         model.profile.notifEmail = email; model.profile.notifSMS = sms; model.profile.notifInApp = inApp;
         if (uiEnabled && view != null) view.refreshAll();
-        writeStateLog3(); // NEW
+        writeStateLog3();
     }
 
     public void setTwoFA(boolean enable) {
         model.profile.twoFA = enable;
         if (uiEnabled && view != null) view.refreshAll();
-        writeStateLog3(); // NEW
+        writeStateLog3();
     }
 
     public void setSelectedAppointment(UUID id) { this.selectedAppointmentId = id; }
@@ -393,7 +353,7 @@ public class Controller implements ControllerInterface {
         setNotificationPrefs(email, sms, inApp);
         setTwoFA(twoFA);
         if (uiEnabled && view != null) view.refreshAll();
-        writeStateLog3(); // NEW
+        writeStateLog3();
     }
 
     /* -----------------------------------------------------------
@@ -407,26 +367,19 @@ public class Controller implements ControllerInterface {
         return f.equals("INSURANCE_MINIMAL") || f.equals("INSURANCE_NORMAL") || f.equals("INSURANCE_PREMIUM");
     }
 
-    /** Persist the current state log to a file, as required by the prof’s spec. */
+    private static boolean isPricing(String f) {
+        return f.equals("OUT_OF_POCKET") || f.equals("PRICE_REDUCTION") || f.equals("DEFERRED_PAYMENT");
+    }
+
     private void writeStateLog() {
         try (FileWriter fw = new FileWriter("state_log.txt", false)) {
-            for (String line : getStateAsLog()) {
-                fw.write(line + System.lineSeparator());
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+            for (String line : getStateAsLog()) fw.write(line + System.lineSeparator());
+        } catch (IOException e) { e.printStackTrace(); }
     }
 
-    /** Persist the current state log to a file, as required by the prof’s spec. */
     private void writeStateLog1() {
         try (FileWriter fw = new FileWriter("state_log1.txt", false)) {
-            for (String line : getStateAsLog1()) {
-                fw.write(line + System.lineSeparator());
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+            for (String line : getStateAsLog1()) fw.write(line + System.lineSeparator());
+        } catch (IOException e) { e.printStackTrace(); }
     }
-
 }
