@@ -61,9 +61,7 @@ public class Controller implements ControllerInterface {
 
     public AppFrame getView() { return view; }
 
-    /* -----------------------------------------------------------
-       ControllerInterface methods
-       ----------------------------------------------------------- */
+    /* ControllerInterface methods */
 
     @Override
     public int activate(String[] deactivations, String[] activations) {
@@ -76,7 +74,7 @@ public class Controller implements ControllerInterface {
         if (activations != null) for (String s : activations) act.add(normalize(s));
         Collections.sort(act);
 
-        /* ---------- apply DEACTIVATIONS to flags/state ---------- */
+        /*  apply DEACTIVATIONS to flags/state  */
         for (String f : deact) {
             if (!FEATURE_MODEL.contains(f)) continue;
 
@@ -96,7 +94,7 @@ public class Controller implements ControllerInterface {
             }
         }
 
-        /* ---------- apply ACTIVATIONS to flags/state ---------- */
+        /*  apply ACTIVATIONS to flags/state  */
         for (String f : act) {
             if (!FEATURE_MODEL.contains(f)) continue;
 
@@ -116,7 +114,7 @@ public class Controller implements ControllerInterface {
             }
         }
 
-        /* ---------- resolve mutually-exclusive groups (priority) ---------- */
+        /*  resolve mutually-exclusive groups (priority)  */
         // Insurance priority: PREMIUM > NORMAL > MINIMAL. If none true, default NORMAL.
         InsuranceLevel resolvedIns =
             fInsPremium ? InsuranceLevel.PREMIUM :
@@ -141,7 +139,7 @@ public class Controller implements ControllerInterface {
         model.profile.insurance = resolvedIns;
         model.pricing = resolvedPricing;
 
-        /* ---------- parent/children invariant for REMINDERS ---------- */
+        /*  parent/children invariant for REMINDERS  */
         boolean parent = enabledModules.contains("REMINDERS");
         boolean ar = enabledModules.contains("APPOINTMENT_REMINDER");
         boolean mr = enabledModules.contains("MEDICATION_REMINDER");
@@ -216,9 +214,9 @@ public class Controller implements ControllerInterface {
         }
     }
 
-    /* -----------------------------------------------------------
+    /* 
        Logs
-       ----------------------------------------------------------- */
+        */
 
     @Override
     public String[] getStateAsLog() {
@@ -285,7 +283,7 @@ public class Controller implements ControllerInterface {
         return lines.toArray(new String[0]);
     }
 
-    /* ---------------- unified log3 ---------------- */
+    /* ------ unified log3 ------ */
     public String[] getStateAsLog3() {
         List<String> lines = new ArrayList<>();
 
@@ -351,7 +349,7 @@ public class Controller implements ControllerInterface {
         } catch (IOException e) { e.printStackTrace(); }
     }
 
-    /* ---------------- Remaining API methods unchanged ---------------- */
+    /* ------ Remaining API methods unchanged ------ */
 
     public void logTESAdvance3(TimeEvent event, java.util.List<String> triggers) {
         tesSection3.clear();
@@ -433,9 +431,9 @@ public class Controller implements ControllerInterface {
         writeStateLog3();
     }
 
-    /* -----------------------------------------------------------
+    /* 
        Helpers
-       ----------------------------------------------------------- */
+        */
     private static String normalize(String s) {
         return s == null ? "" : s.trim().toUpperCase(Locale.ROOT);
     }

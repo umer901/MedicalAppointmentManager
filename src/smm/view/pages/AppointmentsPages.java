@@ -352,9 +352,7 @@ public class AppointmentsPages {
         }
     }
 
-    /* ===========================
-       Create Booking Page
-       =========================== */
+    /*  Create Booking Page */
     public static class CreatePage extends NavAwarePanel {
         private final Controller c;
         private final Runnable after;
