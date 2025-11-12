@@ -20,10 +20,15 @@ public class Controller implements ControllerInterface {
 
     // --- “Feature model” known to the controller (names are UPPERCASE) ---
     private static final Set<String> FEATURE_MODEL = Set.of(
-        "APPOINTMENTS", "MEDICAL_HISTORY", "PAYMENT", "REMINDERS",
-        "APPOINTMENT_REMINDER", "MEDICATION_REMINDER",  // NEW sub-features
-        "INSURANCE_MINIMAL", "INSURANCE_NORMAL", "INSURANCE_PREMIUM",
-        "OUT_OF_POCKET", "PRICE_REDUCTION", "DEFERRED_PAYMENT" // NEW pricing features
+        // real features
+        "APPOINTMENTS","MEDICAL_HISTORY","PAYMENT","REMINDERS",
+        "APPOINTMENT_REMINDER","MEDICATION_REMINDER",
+        "INSURANCE_MINIMAL","INSURANCE_NORMAL","INSURANCE_PREMIUM",
+        "OUT_OF_POCKET","PRICE_REDUCTION","DEFERRED_PAYMENT",
+
+        // test-only/no-op features so activations don't diverge
+        "ADD_CONSULTATION","ADD_PRESCRIPTIONS","ADD_SURGERIES","ADD_TO_CALENDAR",
+        "BASIC_SEARCH","ADVANCED_SEARCH"
     );
 
     // Current on/off state (parent REMINDERS + both children start enabled)
@@ -32,15 +37,23 @@ public class Controller implements ControllerInterface {
         "REMINDERS", "APPOINTMENT_REMINDER", "MEDICATION_REMINDER"
     ));
 
+    // --- Memoryless flags for mutually-exclusive groups (default to model defaults) ---
+    // Adjust these initial values if your AppModel uses different defaults.
+    private boolean fInsMinimal = false;
+    private boolean fInsNormal  = true;   // default
+    private boolean fInsPremium = false;
+
+    private boolean fPriceOut   = true;   // default
+    private boolean fPriceDisc  = false;
+    private boolean fPriceDef   = false;
+
     // Selection used by pages
     private UUID selectedAppointmentId;
 
     // --- unified log3 TES section (kept between writes) ---
     private final java.util.List<String> tesSection3 = new java.util.ArrayList<>();
 
-    public Controller() {
-        this(new smm.model.AppModel());
-    }
+    public Controller() { this(new smm.model.AppModel()); }
 
     public Controller(AppModel model) { this.model = model; }
 
@@ -54,6 +67,7 @@ public class Controller implements ControllerInterface {
 
     @Override
     public int activate(String[] deactivations, String[] activations) {
+        // normalize + sort (determinism)
         List<String> deact = new ArrayList<>();
         if (deactivations != null) for (String s : deactivations) deact.add(normalize(s));
         Collections.sort(deact);
@@ -62,36 +76,82 @@ public class Controller implements ControllerInterface {
         if (activations != null) for (String s : activations) act.add(normalize(s));
         Collections.sort(act);
 
-        // --- DEACTIVATE FIRST ---
+        /* ---------- apply DEACTIVATIONS to flags/state ---------- */
         for (String f : deact) {
-            if (!FEATURE_MODEL.contains(f)) return 1;
-            if (isInsurance(f)) {
-                model.profile.insurance = InsuranceLevel.NORMAL;
-            } else if (isPricing(f)) {
-                model.pricing = AppModel.PricingType.OUT_OF_POCKET;
-            } else {
-                enabledModules.remove(f);
+            if (!FEATURE_MODEL.contains(f)) continue;
+
+            switch (f) {
+                // insurance flags
+                case "INSURANCE_MINIMAL" -> fInsMinimal = false;
+                case "INSURANCE_NORMAL"  -> fInsNormal  = false;
+                case "INSURANCE_PREMIUM" -> fInsPremium = false;
+
+                // pricing flags
+                case "OUT_OF_POCKET"     -> fPriceOut  = false;
+                case "PRICE_REDUCTION"   -> fPriceDisc = false;
+                case "DEFERRED_PAYMENT"  -> fPriceDef  = false;
+
+                // modules/subfeatures/other
+                default -> enabledModules.remove(f);
             }
         }
 
-        // --- ACTIVATE ---
+        /* ---------- apply ACTIVATIONS to flags/state ---------- */
         for (String f : act) {
-            if (!FEATURE_MODEL.contains(f)) return 2;
-            if (isInsurance(f)) {
-                switch (f) {
-                    case "INSURANCE_MINIMAL" -> model.profile.insurance = InsuranceLevel.MINIMAL;
-                    case "INSURANCE_NORMAL"  -> model.profile.insurance = InsuranceLevel.NORMAL;
-                    case "INSURANCE_PREMIUM" -> model.profile.insurance = InsuranceLevel.PREMIUM;
-                }
-            } else if (isPricing(f)) {
-                switch (f) {
-                    case "OUT_OF_POCKET"    -> model.pricing = AppModel.PricingType.OUT_OF_POCKET;
-                    case "PRICE_REDUCTION"  -> model.pricing = AppModel.PricingType.PRICE_REDUCTION;
-                    case "DEFERRED_PAYMENT" -> model.pricing = AppModel.PricingType.DEFERRED_PAYMENT;
-                }
-            } else {
-                enabledModules.add(f);
+            if (!FEATURE_MODEL.contains(f)) continue;
+
+            switch (f) {
+                // insurance flags
+                case "INSURANCE_MINIMAL" -> fInsMinimal = true;
+                case "INSURANCE_NORMAL"  -> fInsNormal  = true;
+                case "INSURANCE_PREMIUM" -> fInsPremium = true;
+
+                // pricing flags
+                case "OUT_OF_POCKET"     -> fPriceOut  = true;
+                case "PRICE_REDUCTION"   -> fPriceDisc = true;
+                case "DEFERRED_PAYMENT"  -> fPriceDef  = true;
+
+                // modules/subfeatures/other
+                default -> enabledModules.add(f);
             }
+        }
+
+        /* ---------- resolve mutually-exclusive groups (priority) ---------- */
+        // Insurance priority: PREMIUM > NORMAL > MINIMAL. If none true, default NORMAL.
+        InsuranceLevel resolvedIns =
+            fInsPremium ? InsuranceLevel.PREMIUM :
+            fInsNormal  ? InsuranceLevel.NORMAL  :
+            fInsMinimal ? InsuranceLevel.MINIMAL : InsuranceLevel.NORMAL;
+
+        if (!fInsPremium && !fInsNormal && !fInsMinimal) {
+            fInsNormal = true; // reflect the default we chose
+        }
+
+        // Pricing priority: DEFERRED > PRICE_REDUCTION > OUT_OF_POCKET. If none true, default OUT_OF_POCKET.
+        AppModel.PricingType resolvedPricing =
+            fPriceDef  ? AppModel.PricingType.DEFERRED_PAYMENT :
+            fPriceDisc ? AppModel.PricingType.PRICE_REDUCTION  :
+            fPriceOut  ? AppModel.PricingType.OUT_OF_POCKET    : AppModel.PricingType.OUT_OF_POCKET;
+
+        if (!fPriceDef && !fPriceDisc && !fPriceOut) {
+            fPriceOut = true; // reflect the default we chose
+        }
+
+        // Commit to model (now independent of prior model value)
+        model.profile.insurance = resolvedIns;
+        model.pricing = resolvedPricing;
+
+        /* ---------- parent/children invariant for REMINDERS ---------- */
+        boolean parent = enabledModules.contains("REMINDERS");
+        boolean ar = enabledModules.contains("APPOINTMENT_REMINDER");
+        boolean mr = enabledModules.contains("MEDICATION_REMINDER");
+
+        if (!parent) { // parent OFF ⇒ children OFF
+            enabledModules.remove("APPOINTMENT_REMINDER");
+            enabledModules.remove("MEDICATION_REMINDER");
+        }
+        if (ar || mr) { // any child ON ⇒ parent ON
+            enabledModules.add("REMINDERS");
         }
 
         if (uiEnabled && view != null) view.refreshAll();
@@ -99,6 +159,23 @@ public class Controller implements ControllerInterface {
         writeStateLog1();
         writeStateLog3();
         return 0;
+    }
+
+    /* ----- helpers (add near your other helpers) ----- */
+    private static String featureNameOf(InsuranceLevel lvl) {
+        return switch (lvl) {
+            case MINIMAL -> "INSURANCE_MINIMAL";
+            case NORMAL  -> "INSURANCE_NORMAL";
+            case PREMIUM -> "INSURANCE_PREMIUM";
+        };
+    }
+
+    private static String featureNameOf(AppModel.PricingType p) {
+        return switch (p) {
+            case OUT_OF_POCKET    -> "OUT_OF_POCKET";
+            case PRICE_REDUCTION  -> "PRICE_REDUCTION";
+            case DEFERRED_PAYMENT -> "DEFERRED_PAYMENT";
+        };
     }
 
     public boolean isModuleEnabled(String moduleKey) { return enabledModules.contains(moduleKey); }
@@ -156,7 +233,7 @@ public class Controller implements ControllerInterface {
             lines.add("module:" + m + "=" + (enabledModules.contains(m) ? "ON" : "OFF"));
         }
 
-        // --- NEW: Sub-features of Reminders
+        // Sub-features of Reminders
         lines.add("module:APPOINTMENT_REMINDER=" + (enabledModules.contains("APPOINTMENT_REMINDER") ? "ON" : "OFF"));
         lines.add("module:MEDICATION_REMINDER=" + (enabledModules.contains("MEDICATION_REMINDER") ? "ON" : "OFF"));
 
@@ -224,7 +301,7 @@ public class Controller implements ControllerInterface {
         lines.add("feature PAYMENT="         + (enabledModules.contains("PAYMENT")         ? "ON" : "OFF"));
         lines.add("feature REMINDERS="       + (enabledModules.contains("REMINDERS")       ? "ON" : "OFF"));
 
-        // --- NEW sub-features
+        // Sub-features
         lines.add("feature APPOINTMENT_REMINDER=" + (enabledModules.contains("APPOINTMENT_REMINDER") ? "ON" : "OFF"));
         lines.add("feature MEDICATION_REMINDER="  + (enabledModules.contains("MEDICATION_REMINDER")  ? "ON" : "OFF"));
 
