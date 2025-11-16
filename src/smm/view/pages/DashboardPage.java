@@ -4,7 +4,6 @@ import smm.controller.Controller;
 import smm.model.Appointment;
 import smm.view.NavAwarePanel;
 import smm.view.UI;
-
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -44,7 +43,7 @@ public class DashboardPage extends NavAwarePanel {
         logoCard.setLayout(new BorderLayout());
 
         try {
-            ImageIcon icon = new ImageIcon(getClass().getResource("logoapp.png"));
+            ImageIcon icon = new ImageIcon(getClass().getResource("../../images/logoapp.png"));
             // Resize smoothly to fit the box
             Image scaled = icon.getImage().getScaledInstance(250, 250, Image.SCALE_SMOOTH);
             JLabel logoLabel = new JLabel(new ImageIcon(scaled));

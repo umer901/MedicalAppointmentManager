@@ -1,5 +1,4 @@
 package smm.model;
-
 public class UserProfile {
     public String name = "";
     public String email = "";

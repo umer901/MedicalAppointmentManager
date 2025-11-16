@@ -1,9 +1,7 @@
 package smm.view.pages;
-
 import smm.controller.Controller;
 import smm.view.NavAwarePanel;
 import smm.view.UI;
-
 import javax.swing.*;
 import java.awt.*;
 

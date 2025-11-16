@@ -1,5 +1,4 @@
 package smm.model;
-
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.UUID;
@@ -9,11 +8,11 @@ public class Appointment {
     public LocalDate date;
     public LocalTime time;
     public String type;          // Consultation, Surgery, Follow-up
-    public String service;       // Dermatology, Cardiology …
+    public String service;       // Dermatology, Cardiology
     public String doctor;
     public String medicalCenter;
     public String roomType;      // Shared / Private
-    public String equipment;     // CT scanner, ECG …
+    public String equipment;     // CT scanner, ECG
     public boolean paid;
     public double price;
 

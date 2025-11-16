@@ -1,5 +1,4 @@
 package smm.model;
-
 import java.time.LocalDate;
 import java.util.UUID;
 

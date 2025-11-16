@@ -435,7 +435,7 @@ public class AppointmentsPages {
             JPanel right = new JPanel(new BorderLayout());
             right.setPreferredSize(new Dimension(320, 320));
             try {
-                ImageIcon raw = new ImageIcon(getClass().getResource("logoapp.png"));
+                ImageIcon raw = new ImageIcon(getClass().getResource("../../images/logoapp.png"));
                 Image scaled = raw.getImage().getScaledInstance(260, 260, Image.SCALE_SMOOTH);
                 JLabel logo = new JLabel(new ImageIcon(scaled));
                 logo.setHorizontalAlignment(SwingConstants.CENTER);
