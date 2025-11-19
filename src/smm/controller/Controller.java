@@ -37,15 +37,9 @@ public class Controller implements ControllerInterface {
         "REMINDERS", "APPOINTMENT_REMINDER", "MEDICATION_REMINDER"
     ));
 
-    // --- Memoryless flags for mutually-exclusive groups (default to model defaults) ---
-    // Adjust these initial values if your AppModel uses different defaults.
-    private boolean fInsMinimal = false;
-    private boolean fInsNormal  = true;   // default
-    private boolean fInsPremium = false;
-
-    private boolean fPriceOut   = true;   // default
-    private boolean fPriceDisc  = false;
-    private boolean fPriceDef   = false;
+    // NEW: keep explicit sets for insurance & pricing features
+    private final Set<String> activeInsurance = new HashSet<>(Set.of("INSURANCE_NORMAL"));
+    private final Set<String> activePricing   = new HashSet<>(Set.of("OUT_OF_POCKET"));
 
     // Selection used by pages
     private UUID selectedAppointmentId;
@@ -53,93 +47,107 @@ public class Controller implements ControllerInterface {
     // --- unified log3 TES section (kept between writes) ---
     private final java.util.List<String> tesSection3 = new java.util.ArrayList<>();
 
-    public Controller() { this(new smm.model.AppModel()); }
+    public Controller() {
+        this(new smm.model.AppModel());
+    }
 
-    public Controller(AppModel model) { this.model = model; }
+    public Controller(AppModel model) {
+        this.model = model;
+        // Ensure model is consistent with our initial feature sets
+        this.model.profile.insurance = InsuranceLevel.NORMAL;
+        this.model.pricing = AppModel.PricingType.OUT_OF_POCKET;
+    }
 
     public AppModel getModel() { return model; }
 
     public AppFrame getView() { return view; }
 
-    /* ControllerInterface methods */
+    /* -----------------------------------------------------------
+       ControllerInterface methods
+       ----------------------------------------------------------- */
 
     @Override
     public int activate(String[] deactivations, String[] activations) {
         // normalize + sort (determinism)
         List<String> deact = new ArrayList<>();
-        if (deactivations != null) for (String s : deactivations) deact.add(normalize(s));
+        if (deactivations != null) {
+            for (String s : deactivations) deact.add(normalize(s));
+        }
         Collections.sort(deact);
 
         List<String> act = new ArrayList<>();
-        if (activations != null) for (String s : activations) act.add(normalize(s));
+        if (activations != null) {
+            for (String s : activations) act.add(normalize(s));
+        }
         Collections.sort(act);
 
-        /*  apply DEACTIVATIONS to flags/state  */
+        /* -------- UPDATE INTERNAL FEATURE SETS (order-independent) -------- */
+
+        // 1) DEACTIVATE
         for (String f : deact) {
-            if (!FEATURE_MODEL.contains(f)) continue;
+            if (!FEATURE_MODEL.contains(f)) continue; // ignore unknown test toggles
 
-            switch (f) {
-                // insurance flags
-                case "INSURANCE_MINIMAL" -> fInsMinimal = false;
-                case "INSURANCE_NORMAL"  -> fInsNormal  = false;
-                case "INSURANCE_PREMIUM" -> fInsPremium = false;
-
-                // pricing flags
-                case "OUT_OF_POCKET"     -> fPriceOut  = false;
-                case "PRICE_REDUCTION"   -> fPriceDisc = false;
-                case "DEFERRED_PAYMENT"  -> fPriceDef  = false;
-
-                // modules/subfeatures/other
-                default -> enabledModules.remove(f);
+            if (isInsurance(f)) {
+                activeInsurance.remove(f);
+            } else if (isPricing(f)) {
+                activePricing.remove(f);
+            } else {
+                enabledModules.remove(f);
             }
         }
 
-        /*  apply ACTIVATIONS to flags/state  */
+        // 2) ACTIVATE
         for (String f : act) {
-            if (!FEATURE_MODEL.contains(f)) continue;
+            if (!FEATURE_MODEL.contains(f)) continue; // ignore unknown test toggles
 
-            switch (f) {
-                // insurance flags
-                case "INSURANCE_MINIMAL" -> fInsMinimal = true;
-                case "INSURANCE_NORMAL"  -> fInsNormal  = true;
-                case "INSURANCE_PREMIUM" -> fInsPremium = true;
-
-                // pricing flags
-                case "OUT_OF_POCKET"     -> fPriceOut  = true;
-                case "PRICE_REDUCTION"   -> fPriceDisc = true;
-                case "DEFERRED_PAYMENT"  -> fPriceDef  = true;
-
-                // modules/subfeatures/other
-                default -> enabledModules.add(f);
+            if (isInsurance(f)) {
+                activeInsurance.add(f);
+            } else if (isPricing(f)) {
+                activePricing.add(f);
+            } else {
+                enabledModules.add(f);
             }
         }
 
-        /*  resolve mutually-exclusive groups (priority)  */
-        // Insurance priority: PREMIUM > NORMAL > MINIMAL. If none true, default NORMAL.
-        InsuranceLevel resolvedIns =
-            fInsPremium ? InsuranceLevel.PREMIUM :
-            fInsNormal  ? InsuranceLevel.NORMAL  :
-            fInsMinimal ? InsuranceLevel.MINIMAL : InsuranceLevel.NORMAL;
-
-        if (!fInsPremium && !fInsNormal && !fInsMinimal) {
-            fInsNormal = true; // reflect the default we chose
+        /* -------- DERIVE INSURANCE FROM activeInsurance --------
+           Priority: PREMIUM > NORMAL > MINIMAL
+         */
+        InsuranceLevel pendingIns;
+        if (activeInsurance.contains("INSURANCE_PREMIUM")) {
+            pendingIns = InsuranceLevel.PREMIUM;
+        } else if (activeInsurance.contains("INSURANCE_NORMAL")) {
+            pendingIns = InsuranceLevel.NORMAL;
+        } else if (activeInsurance.contains("INSURANCE_MINIMAL")) {
+            pendingIns = InsuranceLevel.MINIMAL;
+        } else {
+            // no insurance feature active → default to NORMAL
+            pendingIns = InsuranceLevel.NORMAL;
+            activeInsurance.clear();
+            activeInsurance.add("INSURANCE_NORMAL");
         }
 
-        // Pricing priority: DEFERRED > PRICE_REDUCTION > OUT_OF_POCKET. If none true, default OUT_OF_POCKET.
-        AppModel.PricingType resolvedPricing =
-            fPriceDef  ? AppModel.PricingType.DEFERRED_PAYMENT :
-            fPriceDisc ? AppModel.PricingType.PRICE_REDUCTION  :
-            fPriceOut  ? AppModel.PricingType.OUT_OF_POCKET    : AppModel.PricingType.OUT_OF_POCKET;
-
-        if (!fPriceDef && !fPriceDisc && !fPriceOut) {
-            fPriceOut = true; // reflect the default we chose
+        /* -------- DERIVE PRICING FROM activePricing --------
+           Priority: DEFERRED > PRICE_REDUCTION > OUT_OF_POCKET
+         */
+        AppModel.PricingType pendingPricing;
+        if (activePricing.contains("DEFERRED_PAYMENT")) {
+            pendingPricing = AppModel.PricingType.DEFERRED_PAYMENT;
+        } else if (activePricing.contains("PRICE_REDUCTION")) {
+            pendingPricing = AppModel.PricingType.PRICE_REDUCTION;
+        } else if (activePricing.contains("OUT_OF_POCKET")) {
+            pendingPricing = AppModel.PricingType.OUT_OF_POCKET;
+        } else {
+            // no pricing feature active → default to OUT_OF_POCKET
+            pendingPricing = AppModel.PricingType.OUT_OF_POCKET;
+            activePricing.clear();
+            activePricing.add("OUT_OF_POCKET");
         }
 
-        // Commit to model (now independent of prior model value)
-        model.profile.insurance = resolvedIns;
-        model.pricing = resolvedPricing;
+        /* -------- Commit model -------- */
+        model.profile.insurance = pendingIns;
+        model.pricing = pendingPricing;
 
-        /*  parent/children invariant for REMINDERS  */
+        /* -------- Parent/children invariant for REMINDERS -------- */
         boolean parent = enabledModules.contains("REMINDERS");
         boolean ar = enabledModules.contains("APPOINTMENT_REMINDER");
         boolean mr = enabledModules.contains("MEDICATION_REMINDER");
@@ -214,9 +222,9 @@ public class Controller implements ControllerInterface {
         }
     }
 
-    /* 
+    /* -----------------------------------------------------------
        Logs
-        */
+       ----------------------------------------------------------- */
 
     @Override
     public String[] getStateAsLog() {
@@ -283,7 +291,7 @@ public class Controller implements ControllerInterface {
         return lines.toArray(new String[0]);
     }
 
-    /* ------ unified log3 ------ */
+    /* ---------------- unified log3 ---------------- */
     public String[] getStateAsLog3() {
         List<String> lines = new ArrayList<>();
 
@@ -349,7 +357,7 @@ public class Controller implements ControllerInterface {
         } catch (IOException e) { e.printStackTrace(); }
     }
 
-    /* ------ Remaining API methods unchanged ------ */
+    /* ---------------- Remaining API methods unchanged ---------------- */
 
     public void logTESAdvance3(TimeEvent event, java.util.List<String> triggers) {
         tesSection3.clear();
@@ -367,6 +375,13 @@ public class Controller implements ControllerInterface {
     }
 
     public void setInsurance(InsuranceLevel lvl) {
+        // keep sets + model in sync
+        activeInsurance.clear();
+        switch (lvl) {
+            case MINIMAL -> activeInsurance.add("INSURANCE_MINIMAL");
+            case NORMAL  -> activeInsurance.add("INSURANCE_NORMAL");
+            case PREMIUM -> activeInsurance.add("INSURANCE_PREMIUM");
+        }
         model.profile.insurance = lvl;
         if (uiEnabled && view != null) view.refreshAll();
         writeStateLog3();
@@ -403,7 +418,9 @@ public class Controller implements ControllerInterface {
     }
 
     public void setNotificationPrefs(boolean email, boolean sms, boolean inApp) {
-        model.profile.notifEmail = email; model.profile.notifSMS = sms; model.profile.notifInApp = inApp;
+        model.profile.notifEmail = email;
+        model.profile.notifSMS = sms;
+        model.profile.notifInApp = inApp;
         if (uiEnabled && view != null) view.refreshAll();
         writeStateLog3();
     }
@@ -415,6 +432,7 @@ public class Controller implements ControllerInterface {
     }
 
     public void setSelectedAppointment(UUID id) { this.selectedAppointmentId = id; }
+
     public Appointment getSelectedAppointment() {
         if (selectedAppointmentId == null) return null;
         return model.appointments.stream().filter(a -> a.id.equals(selectedAppointmentId)).findFirst().orElse(null);
@@ -431,9 +449,9 @@ public class Controller implements ControllerInterface {
         writeStateLog3();
     }
 
-    /* 
+    /* -----------------------------------------------------------
        Helpers
-        */
+       ----------------------------------------------------------- */
     private static String normalize(String s) {
         return s == null ? "" : s.trim().toUpperCase(Locale.ROOT);
     }

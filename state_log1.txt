@@ -1,7 +1,7 @@
 window mainWindow
 label userName mainWindow-TopLeft
 label insuranceLevel mainWindow-TopRight
-buttonSmall upgradeToPremium mainWindow-BottomRight
+buttonSmall upgradeToNormal mainWindow-BottomRight
 buttonMedium appointments mainWindow-Center
 window appointmentsList
 buttonSmall newAppointment mainWindow-BottomLeft

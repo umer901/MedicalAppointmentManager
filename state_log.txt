@@ -1,7 +1,7 @@
-uiEnabled:true
+uiEnabled:false
 user:
-insurance:PREMIUM
-pricing:OUT_OF_POCKET
+insurance:MINIMAL
+pricing:DEFERRED_PAYMENT
 module:APPOINTMENTS=ON
 module:MEDICAL_HISTORY=ON
 module:PAYMENT=ON
@@ -13,4 +13,4 @@ history:count=3
 invoices:total=2
 invoices:unpaid=1
 reminders:enabled=2
-policy:Price Reduction/Deferred
+policy:Out of Pocket
